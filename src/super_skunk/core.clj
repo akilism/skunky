@@ -1,6 +1,7 @@
 (ns super-skunk.core
   (:gen-class)
   (:require [clj-http.client :as client]
+            [fipp.edn :refer (pprint) :rename {pprint fipp}]
             [cheshire.core :as json]))
 
 (defn request [opts url]
@@ -29,13 +30,30 @@
           (strains (inc page-idx) is-last-page (concat all-strains (get-in response-body [:Model :Strains]))))
      all-strains)))
 
-
-(defn -main
-  [& args]
-  (println "Super Skunk")
+(defn write-strains []
   (let [all-strains (strains 0 false [])
         json-str-strains (json/generate-string {:strains all-strains} {:pretty true})]
    (println (str "Total Strains Fetched: " (count all-strains)))
    (println (str "Writing strains.json"))
    (with-open [out-file (clojure.java.io/writer "./output/strains.json" :encoding "UTF-8")]
-    (.write out-file json-str-strains))))
+    (.write out-file json-str-strains))
+   all-strains))
+
+(defn load-strains []
+  (with-open [in-file (clojure.java.io/reader "./output/strains.json" :encoding "UTF-8")]
+   (json/parse-string (clojure.string/join "\n" (line-seq in-file)) true)))
+
+(defn strain-stats []
+  (println "nothing yet.")
+  (let [strains (:strains (load-strains))]
+   (fipp (keys (first strains)))
+   (fipp (sort-by second (map (fn [strain] [(:Name strain) (:Rating strain)]) (filter #(< 0 (:Rating %)) strains))))
+   (fipp (map :Name (take 10 strains)))))
+
+(defn -main
+  [& args]
+  (println "Super Skunk")
+  (let [mode (first args)]
+   (condp = mode
+     "w" (write-strains)
+     "s" (strain-stats))))
