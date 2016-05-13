@@ -44,11 +44,11 @@
    (json/parse-string (clojure.string/join "\n" (line-seq in-file)) true)))
 
 (defn strain-stats []
-  (println "nothing yet.")
   (let [strains (:strains (load-strains))]
    (fipp (keys (first strains)))
    (fipp (sort-by second (map (fn [strain] [(:Name strain) (:Rating strain)]) (filter #(< 0 (:Rating %)) strains))))
-   (fipp (map :Name (take 10 strains)))))
+   (fipp (take 10 (reverse (sort-by second (map (fn [[k v]] [k (count v)]) (group-by :Rating strains))))))))
+
 
 (defn -main
   [& args]
